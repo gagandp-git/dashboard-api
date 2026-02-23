@@ -30,6 +30,16 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS records (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    project VARCHAR(100),
+    status VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
 app.get("/api/data", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM records ORDER BY id DESC");
