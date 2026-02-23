@@ -14,6 +14,20 @@ const pool = new Pool({
   },
 });
 
+pool.query(`
+  CREATE TABLE IF NOT EXISTS records (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    project VARCHAR(100),
+    status VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`).then(() => {
+  console.log("Table ready");
+}).catch(err => {
+  console.error("Table creation error:", err);
+});
+
 app.post("/webhook", async (req, res) => {
   try {
     const { name, project, status } = req.body;
@@ -30,15 +44,6 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
-await pool.query(`
-  CREATE TABLE IF NOT EXISTS records (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
-    project VARCHAR(100),
-    status VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-`);
 
 app.get("/api/data", async (req, res) => {
   try {
