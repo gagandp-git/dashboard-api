@@ -15,43 +15,43 @@ const pool = new Pool({
 });
 
 pool.query(`
-  CREATE TABLE IF NOT EXISTS records (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
-    project VARCHAR(100),
-    status VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  CREATE TABLE IF NOT EXISTS projects (
+    id BIGINT PRIMARY KEY,
+    description TEXT,
+    folder_id BIGINT,
+    updated_at TIMESTAMP,
+    name TEXT
   );
 `).then(() => {
-  console.log("Table ready");
+  console.log("Projects table ready");
 }).catch(err => {
   console.error("Table creation error:", err);
 });
 
-app.post("/webhook", async (req, res) => {
+app.post("/api/projects", async (req, res) => {
   try {
-    const { name, project, status } = req.body;
+    const { id, description, folder_id, updated_at, name } = req.body;
 
-    await pool.query(
-      "INSERT INTO records (name, project, status) VALUES ($1, $2, $3)",
-      [name, project, status]
+    const result = await pool.query(
+      `INSERT INTO projects (id, description, folder_id, updated_at, name)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [id, description, folder_id, updated_at, name]
     );
 
-    res.json({ message: "Data saved successfully" });
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Database error" });
+    res.status(500).json({ error: "Insert failed" });
   }
 });
 
 
-app.get("/api/data", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM records ORDER BY id DESC");
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: "Database error" });
-  }
+app.get("/api/projects", async (req, res) => {
+  const result = await pool.query(
+    "SELECT * FROM projects ORDER BY updated_at DESC"
+  );
+  res.json(result.rows);
 });
 
 app.listen(process.env.PORT || 5000, () => {
