@@ -30,19 +30,31 @@ pool.query(`
 
 app.post("/api/projects", async (req, res) => {
   try {
-    const { id, description, folder_id, updated_at, name } = req.body;
+    const records = req.body;
 
-    const result = await pool.query(
-      `INSERT INTO projects (id, description, folder_id, updated_at, name)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [id, description, folder_id, updated_at, name]
-    );
+    for (const record of records) {
+      const { id, description, folder_id, updated_at, name } = record;
 
-    res.json(result.rows[0]);
+      await pool.query(
+        `
+        INSERT INTO projects (id, description, folder_id, updated_at, name)
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (id)
+        DO UPDATE SET
+          description = EXCLUDED.description,
+          folder_id = EXCLUDED.folder_id,
+          updated_at = EXCLUDED.updated_at,
+          name = EXCLUDED.name;
+        `,
+        [id, description, folder_id, updated_at, name]
+      );
+    }
+
+    res.json({ message: "Batch sync successful" });
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Insert failed" });
+    res.status(500).json({ error: "Batch insert failed" });
   }
 });
 
