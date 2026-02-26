@@ -257,16 +257,6 @@ app.post("/api/recipes", async (req, res) => {
 
 // ================= FETCH DATA FOR DASHBOARD =================
 
-app.get("/drop-recipes", async (req, res) => {
-  try {
-    await pool.query("DROP TABLE IF EXISTS recipes;");
-    res.send("Recipes table dropped ✅");
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error dropping table");
-  }
-});
-
 app.get("/api/projects", async (req, res) => {
   try {
     const result = await pool.query(
