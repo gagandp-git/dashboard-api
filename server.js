@@ -82,12 +82,12 @@ pool.query(`
 
 pool.query(`
   CREATE TABLE IF NOT EXISTS recipes (
-    id TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     name TEXT,
-    project_id TEXT,
-    running TEXT,
-    job_succeeded_count TEXT,
-    job_failed_count TEXT,
+    project_id INTEGER,
+    running BOOLEAN,
+    job_succeeded_count INTEGER,
+    job_failed_count INTEGER,
     last_run_at TIMESTAMP,
     updated_at TIMESTAMP
   );
@@ -256,6 +256,16 @@ app.post("/api/recipes", async (req, res) => {
 });
 
 // ================= FETCH DATA FOR DASHBOARD =================
+
+app.get("/drop-recipes", async (req, res) => {
+  try {
+    await pool.query("DROP TABLE IF EXISTS recipes;");
+    res.send("Recipes table dropped ✅");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error dropping table");
+  }
+});
 
 app.get("/api/projects", async (req, res) => {
   try {
