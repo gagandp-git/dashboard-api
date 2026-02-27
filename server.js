@@ -216,41 +216,53 @@ app.post("/api/connections", async (req, res) => {
   }
 });
 
-app.post("/api/recipes", async (req, res) => {
+app.post("/api/sync-recipes", async (req, res) => {
   try {
-    const records = req.body;
+    const items = req.body.Items || [];
 
-    for (const r of records) {
+    for (const r of items) {
+
+      const formatted = {
+        id: parseInt(r.ID),
+        name: r.Name,
+        project_id: parseInt(r["Project ID"]),
+        job_succeeded_count: parseInt(r["Job succeeded count"]),
+        job_failed_count: parseInt(r["Job failed count"]),
+        last_run_at: r["Last run at"] || null,
+        updated_at: r["Updated at"] ? r["Updated at"].replace(" ", "T") : null,
+        running: r.Running === "true" || r.Running === true
+      };
+
       await pool.query(
-        `
-        INSERT INTO recipes (
-          id, name, project_id,
-          running, job_succeeded_count,
-          job_failed_count, last_run_at, updated_at
-        )
+        `INSERT INTO recipes 
+        (id, name, project_id, running, job_succeeded_count, job_failed_count, last_run_at, updated_at)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        ON CONFLICT (id) DO UPDATE SET
+        ON CONFLICT (id)
+        DO UPDATE SET
           name = EXCLUDED.name,
+          project_id = EXCLUDED.project_id,
           running = EXCLUDED.running,
           job_succeeded_count = EXCLUDED.job_succeeded_count,
           job_failed_count = EXCLUDED.job_failed_count,
-          updated_at = EXCLUDED.updated_at;
-        `,
+          last_run_at = EXCLUDED.last_run_at,
+          updated_at = EXCLUDED.updated_at`,
         [
-          r.id,
-          r.name,
-          r.project_id,
-          r.running,
-          r.job_succeeded_count,
-          r.job_failed_count,
-          r.last_run_at,
-          r.updated_at
+          formatted.id,
+          formatted.name,
+          formatted.project_id,
+          formatted.running,
+          formatted.job_succeeded_count,
+          formatted.job_failed_count,
+          formatted.last_run_at,
+          formatted.updated_at
         ]
       );
     }
 
-    res.json({ message: "Recipes synced" });
-  } catch (err) {
+    res.json({ message: "Recipes synced successfully ✅" });
+
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to sync recipes" });
   }
 });
