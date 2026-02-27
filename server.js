@@ -216,7 +216,7 @@ app.post("/api/connections", async (req, res) => {
   }
 });
 
-app.post("/api/sync-recipes", async (req, res) => {
+app.post("/api/recipes", async (req, res) => {
   try {
     const items = req.body.Items || [];
 
