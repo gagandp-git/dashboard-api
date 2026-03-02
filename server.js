@@ -91,8 +91,9 @@ pool.query(`
     last_run_at TIMESTAMP,
     updated_at TIMESTAMP
   );
-`).then(() => console.log("Recipes table ready"))
-.catch(err => console.error("Table creation error:", err));
+`)
+.then(() => console.log("Recipes table ready"))
+.catch(err => console.error("Recipes table creation error:", err));
 // ================= WORKATO SYNC ENDPOINT =================
 
 // Workato will POST array of records here
@@ -132,42 +133,56 @@ app.post("/api/projects", async (req, res) => {
 
 app.post("/api/jobs", async (req, res) => {
   try {
-    const records = req.body;
+    const { items } = req.body;
 
-    for (const r of records) {
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid payload" });
+    }
+
+    for (const j of items) {
       await pool.query(
-        `
-        INSERT INTO jobs (
-          id, completed_at, started_at, title, is_poll_error,
-          error, is_error, status,
-          calling_recipe_id, calling_job_id,
-          recipe_id, root_recipe_id, root_job_id
+        `INSERT INTO jobs (
+          id,
+          completed_at,
+          started_at,
+          title,
+          is_poll_error,
+          error,
+          is_error,
+          status,
+          calling_recipe_id,
+          calling_job_id,
+          recipe_id,
+          root_recipe_id,
+          root_job_id
         )
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
         ON CONFLICT (id) DO UPDATE SET
-          status = EXCLUDED.status,
-          completed_at = EXCLUDED.completed_at;
-        `,
+          completed_at = EXCLUDED.completed_at,
+          started_at = EXCLUDED.started_at,
+          status = EXCLUDED.status`,
         [
-          r.id,
-          r.completed_at,
-          r.started_at,
-          r.title,
-          r.is_poll_error,
-          r.error,
-          r.is_error,
-          r.status,
-          r.calling_recipe_id,
-          r.calling_job_id,
-          r.recipe_id,
-          r.root_recipe_id,
-          r.root_job_id
+          j.id,
+          j.completed_at || null,
+          j.started_at || null,
+          j.title || null,
+          j.is_poll_error?.toString() || null,
+          j.error || null,
+          j.is_error?.toString() || null,
+          j.status || null,
+          j.calling_recipe_id || null,
+          j.calling_job_id || null,
+          j.recipe_id?.toString() || null,
+          j.root_recipe_id || null,
+          j.root_job_id || null
         ]
       );
     }
 
-    res.json({ message: "Jobs synced" });
-  } catch (err) {
+    res.json({ message: "Jobs synced successfully" });
+
+  } catch (error) {
+    console.error("Jobs Sync Error:", error);
     res.status(500).json({ error: "Failed to sync jobs" });
   }
 });
@@ -218,52 +233,50 @@ app.post("/api/connections", async (req, res) => {
 
 app.post("/api/recipes", async (req, res) => {
   try {
-    const items = req.body.Items || [];
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid payload" });
+    }
 
     for (const r of items) {
-
-      const formatted = {
-        id: parseInt(r.ID),
-        name: r.Name,
-        project_id: parseInt(r["Project ID"]),
-        job_succeeded_count: parseInt(r["Job succeeded count"]),
-        job_failed_count: parseInt(r["Job failed count"]),
-        last_run_at: r["Last run at"] || null,
-        updated_at: r["Updated at"] ? r["Updated at"].replace(" ", "T") : null,
-        running: r.Running === "true" || r.Running === true
-      };
-
       await pool.query(
-        `INSERT INTO recipes 
-        (id, name, project_id, running, job_succeeded_count, job_failed_count, last_run_at, updated_at)
+        `INSERT INTO recipes (
+          id,
+          name,
+          project_id,
+          running,
+          job_succeeded_count,
+          job_failed_count,
+          last_run_at,
+          updated_at
+        )
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-        ON CONFLICT (id)
-        DO UPDATE SET
+        ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
-          project_id = EXCLUDED.project_id,
           running = EXCLUDED.running,
           job_succeeded_count = EXCLUDED.job_succeeded_count,
           job_failed_count = EXCLUDED.job_failed_count,
           last_run_at = EXCLUDED.last_run_at,
           updated_at = EXCLUDED.updated_at`,
         [
-          formatted.id,
-          formatted.name,
-          formatted.project_id,
-          formatted.running,
-          formatted.job_succeeded_count,
-          formatted.job_failed_count,
-          formatted.last_run_at,
-          formatted.updated_at
+          r.id,
+          r.name,
+          r.project_id,
+          r.running,
+          r.job_succeeded_count,
+          r.job_failed_count,
+          r.last_run_at,
+          r.updated_at
         ]
       );
     }
 
-    res.json({ message: "Recipes synced successfully ✅" });
+    res.json({ message: "Recipes saved successfully" });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to sync recipes" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -281,8 +294,13 @@ app.get("/api/projects", async (req, res) => {
 });
 
 app.get("/api/jobs", async (req, res) => {
-  const result = await pool.query("SELECT * FROM jobs");
-  res.json(result.rows);
+  try {
+    const result = await pool.query("SELECT * FROM jobs");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch jobs" });
+  }
 });
 
 app.get("/api/connections", async (req, res) => {
