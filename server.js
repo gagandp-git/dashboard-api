@@ -54,7 +54,11 @@ pool.query(`
     calling_job_id TEXT,
     recipe_id TEXT,
     root_recipe_id TEXT,
-    root_job_id TEXT
+    root_job_id TEXT,
+    job_succeeded_count INTEGER,
+    job_failed_count INTEGER,
+    job_count INTEGER,
+    job_scope_count INTEGER
   );
 `).then(() => console.log("Jobs table ready"))
 .catch(err => console.error("Table creation error:", err));
@@ -154,13 +158,22 @@ app.post("/api/jobs", async (req, res) => {
           calling_job_id,
           recipe_id,
           root_recipe_id,
-          root_job_id
+          root_job_id,
+          job_succeeded_count,
+          job_failed_count,
+          job_count,
+          job_scope_count
+
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
         ON CONFLICT (id) DO UPDATE SET
           completed_at = EXCLUDED.completed_at,
           started_at = EXCLUDED.started_at,
-          status = EXCLUDED.status`,
+          status = EXCLUDED.status,
+          job_succeeded_count = EXCLUDED.job_succeeded_count,
+          job_failed_count = EXCLUDED.job_failed_count,
+          job_count = EXCLUDED.job_count,
+          job_scope_count = EXCLUDED.job_scope_count`;
         [
           j.id,
           j.completed_at || null,
@@ -174,7 +187,11 @@ app.post("/api/jobs", async (req, res) => {
           j.calling_job_id || null,
           j.recipe_id?.toString() || null,
           j.root_recipe_id || null,
-          j.root_job_id || null
+          j.root_job_id || null,
+          j.job_succeeded_count,
+          j.job_failed_count,
+          j.job_count,
+          j.job_scope_count
         ]
       );
     }
