@@ -29,13 +29,8 @@ app.get("/api/test", (req, res) => {
 // ================= CREATE TABLE IF NOT EXISTS =================
 // ================= RESET + CREATE JOBS TABLE =================
 
-(async () => {
-  try {
-    // ⚠️ Development only - removes old structure
-    await pool.query(`DROP TABLE IF EXISTS jobs;`);
-
-    await pool.query(`
-      CREATE TABLE jobs (
+pool.query(`
+      CREATE TABLE IF NOT EXISTS jobs (
         id TEXT PRIMARY KEY,
         completed_at TIMESTAMP,
         started_at TIMESTAMP,
@@ -55,13 +50,9 @@ app.get("/api/test", (req, res) => {
         job_count INTEGER,
         job_scope_count INTEGER
       );
-    `);
-
-    console.log("Jobs table recreated successfully ✅");
-  } catch (err) {
-    console.error("Jobs table creation error:", err);
-  }
-})();
+    `).then(() => console.log("Projects table ready"))
+.catch(err => console.error("Table creation error:", err));
+  
 
 pool.query(`
   CREATE TABLE IF NOT EXISTS projects (
