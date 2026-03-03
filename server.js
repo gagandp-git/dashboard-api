@@ -27,6 +27,41 @@ app.get("/api/test", (req, res) => {
 });
 
 // ================= CREATE TABLE IF NOT EXISTS =================
+// ================= RESET + CREATE JOBS TABLE =================
+
+(async () => {
+  try {
+    // ⚠️ Development only - removes old structure
+    await pool.query(`DROP TABLE IF EXISTS jobs;`);
+
+    await pool.query(`
+      CREATE TABLE jobs (
+        id TEXT PRIMARY KEY,
+        completed_at TIMESTAMP,
+        started_at TIMESTAMP,
+        title TEXT,
+        is_poll_error BOOLEAN,
+        error TEXT,
+        is_error BOOLEAN,
+        status TEXT,
+        calling_recipe_id TEXT,
+        calling_job_id TEXT,
+        recipe_id TEXT,
+        root_recipe_id TEXT,
+        root_job_id TEXT,
+        master_job_id TEXT,
+        job_succeeded_count INTEGER,
+        job_failed_count INTEGER,
+        job_count INTEGER,
+        job_scope_count INTEGER
+      );
+    `);
+
+    console.log("Jobs table recreated successfully ✅");
+  } catch (err) {
+    console.error("Jobs table creation error:", err);
+  }
+})();
 
 pool.query(`
   CREATE TABLE IF NOT EXISTS projects (
@@ -38,30 +73,6 @@ pool.query(`
   );
 `)
 .then(() => console.log("Projects table ready"))
-.catch(err => console.error("Table creation error:", err));
-
-pool.query(`
-  CREATE TABLE IF NOT EXISTS jobs (
-    id TEXT PRIMARY KEY,
-    completed_at TIMESTAMP,
-    started_at TIMESTAMP,
-    title TEXT,
-    is_poll_error BOOLEAN,
-    error TEXT,
-    is_error BOOLEAN,
-    status TEXT,
-    calling_recipe_id TEXT,
-    calling_job_id TEXT,
-    recipe_id TEXT,
-    root_recipe_id TEXT,
-    root_job_id TEXT,
-    master_job_id TEXT,
-    job_succeeded_count INTEGER,
-    job_failed_count INTEGER,
-    job_count INTEGER,
-    job_scope_count INTEGER
-  );
-`).then(() => console.log("Jobs table ready"))
 .catch(err => console.error("Table creation error:", err));
 
 pool.query(`
@@ -264,9 +275,10 @@ app.post("/api/connections", async (req, res) => {
     }
 
     res.json({ message: "Connections synced" });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to sync connections" });
-  }
+  } catch (error) {
+  console.error("FULL ERROR:", error);
+  res.status(500).json({ error: error.message });
+}
 });
 
 app.post("/api/recipes", async (req, res) => {
