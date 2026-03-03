@@ -46,15 +46,16 @@ pool.query(`
     completed_at TIMESTAMP,
     started_at TIMESTAMP,
     title TEXT,
-    is_poll_error TEXT,
+    is_poll_error BOOLEAN,
     error TEXT,
-    is_error TEXT,
+    is_error BOOLEAN,
     status TEXT,
     calling_recipe_id TEXT,
     calling_job_id TEXT,
     recipe_id TEXT,
     root_recipe_id TEXT,
     root_job_id TEXT,
+    master_job_id TEXT,
     job_succeeded_count INTEGER,
     job_failed_count INTEGER,
     job_count INTEGER,
@@ -151,66 +152,69 @@ app.post("/api/jobs", async (req, res) => {
 
     for (const j of items) {
       await pool.query(
-        `INSERT INTO jobs (
-          id,
-          completed_at,
-          started_at,
-          title,
-          is_poll_error,
-          error,
-          is_error,
-          status,
-          calling_recipe_id,
-          calling_job_id,
-          recipe_id,
-          root_recipe_id,
-          root_job_id,
-          job_succeeded_count,
-          job_failed_count,
-          job_count,
-          job_scope_count
-        )
-        VALUES (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
-        )
-        ON CONFLICT (id) DO UPDATE SET
-          completed_at = EXCLUDED.completed_at,
-          started_at = EXCLUDED.started_at,
-          title = EXCLUDED.title,
-          is_poll_error = EXCLUDED.is_poll_error,
-          error = EXCLUDED.error,
-          is_error = EXCLUDED.is_error,
-          status = EXCLUDED.status,
-          calling_recipe_id = EXCLUDED.calling_recipe_id,
-          calling_job_id = EXCLUDED.calling_job_id,
-          recipe_id = EXCLUDED.recipe_id,
-          root_recipe_id = EXCLUDED.root_recipe_id,
-          root_job_id = EXCLUDED.root_job_id,
-          job_succeeded_count = EXCLUDED.job_succeeded_count,
-          job_failed_count = EXCLUDED.job_failed_count,
-          job_count = EXCLUDED.job_count,
-          job_scope_count = EXCLUDED.job_scope_count;
-        `,
-        [
-          j.id,
-          j.completed_at || null,
-          j.started_at || null,
-          j.title || null,
-          j.is_poll_error ?? null,
-          j.error || null,
-          j.is_error ?? null,
-          j.status || null,
-          j.calling_recipe_id || null,
-          j.calling_job_id || null,
-          j.recipe_id?.toString() || null,
-          j.root_recipe_id || null,
-          j.root_job_id || null,
-          job_succeeded_count ?? 0,
-          job_failed_count ?? 0,
-          job_count ?? 0,
-          job_scope_count ?? 0
-        ]
-      );
+  `INSERT INTO jobs (
+    id,
+    completed_at,
+    started_at,
+    title,
+    is_poll_error,
+    error,
+    is_error,
+    status,
+    calling_recipe_id,
+    calling_job_id,
+    recipe_id,
+    root_recipe_id,
+    root_job_id,
+    master_job_id,
+    job_succeeded_count,
+    job_failed_count,
+    job_count,
+    job_scope_count
+  )
+  VALUES (
+    $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    completed_at = EXCLUDED.completed_at,
+    started_at = EXCLUDED.started_at,
+    title = EXCLUDED.title,
+    is_poll_error = EXCLUDED.is_poll_error,
+    error = EXCLUDED.error,
+    is_error = EXCLUDED.is_error,
+    status = EXCLUDED.status,
+    calling_recipe_id = EXCLUDED.calling_recipe_id,
+    calling_job_id = EXCLUDED.calling_job_id,
+    recipe_id = EXCLUDED.recipe_id,
+    root_recipe_id = EXCLUDED.root_recipe_id,
+    root_job_id = EXCLUDED.root_job_id,
+    master_job_id = EXCLUDED.master_job_id,
+    job_succeeded_count = EXCLUDED.job_succeeded_count,
+    job_failed_count = EXCLUDED.job_failed_count,
+    job_count = EXCLUDED.job_count,
+    job_scope_count = EXCLUDED.job_scope_count;
+  `,
+  [
+    j.id,
+    j.completed_at || null,
+    j.started_at || null,
+    j.title || null,
+    j.is_poll_error ?? null,
+    j.error || null,
+    j.is_error ?? null,
+    j.status || null,
+    j.calling_recipe_id || null,
+    j.calling_job_id || null,
+    j.recipe_id?.toString() || null,
+    j.root_recipe_id || null,
+    j.root_job_id || null,
+    j.master_job_id || null,
+    job_succeeded_count ?? 0,
+    job_failed_count ?? 0,
+    job_count ?? 0,
+    job_scope_count ?? 0
+  ]
+);
     }
 
     res.json({ message: "Jobs synced successfully" });
