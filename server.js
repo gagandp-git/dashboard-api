@@ -316,9 +316,9 @@ app.post("/api/recipes", async (req, res) => {
     res.json({ message: "Recipes saved successfully" });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error" });
-  }
+  console.error("FULL ERROR:", error);
+  res.status(500).json({ error: error.message });
+}
 });
 
 // ================= FETCH DATA FOR DASHBOARD =================
