@@ -301,15 +301,17 @@ app.post("/api/recipes", async (req, res) => {
           last_run_at = EXCLUDED.last_run_at,
           updated_at = EXCLUDED.updated_at`,
         [
-          r.id,
-          r.name,
-          r.project_id,
-          r.running,
-          r.job_succeeded_count,
-          r.job_failed_count,
-          r.last_run_at,
-          r.updated_at
-        ]
+  r.id,
+  r.name,
+  r.project_id,
+  r.updated_at ? r.updated_at : null,
+  r.running,
+  r.job_succeeded_count ?? 0,
+  r.job_failed_count ?? 0,
+  r.last_run_at && r.last_run_at !== "" 
+    ? r.last_run_at 
+    : null
+]
       );
     }
 
