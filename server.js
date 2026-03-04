@@ -2,7 +2,11 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
-
+const safeTimestamp = (value) => {
+  if (!value) return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+  return value;
+};
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -280,7 +284,17 @@ app.post("/api/recipes", async (req, res) => {
       return res.status(400).json({ error: "Invalid payload" });
     }
 
+    const safeTimestamp = (value) => {
+      if (!value) return null;
+      if (typeof value === "string" && value.trim() === "") return null;
+      return value;
+    };
+
     for (const r of items) {
+
+      // ✅ Skip empty objects
+      if (!r.id) continue;
+
       await pool.query(
         `INSERT INTO recipes (
           id,
@@ -301,26 +315,24 @@ app.post("/api/recipes", async (req, res) => {
           last_run_at = EXCLUDED.last_run_at,
           updated_at = EXCLUDED.updated_at`,
         [
-  r.id,
-  r.name,
-  r.project_id,
-  r.updated_at ? r.updated_at : null,
-  r.running,
-  r.job_succeeded_count ?? 0,
-  r.job_failed_count ?? 0,
-  r.last_run_at && r.last_run_at !== "" 
-    ? r.last_run_at 
-    : null
-]
+          r.id,
+          r.name || null,
+          r.project_id || null,
+          r.running === true || r.running === "true",
+          r.job_succeeded_count ?? 0,
+          r.job_failed_count ?? 0,
+          safeTimestamp(r.last_run_at),
+          safeTimestamp(r.updated_at)
+        ]
       );
     }
 
     res.json({ message: "Recipes saved successfully" });
 
   } catch (error) {
-  console.error("FULL ERROR:", error);
-  res.status(500).json({ error: error.message });
-}
+    console.error("FULL ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ================= FETCH DATA FOR DASHBOARD =================
