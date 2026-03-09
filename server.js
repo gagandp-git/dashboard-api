@@ -258,21 +258,21 @@ const safeTimestamp = (value) => {
           updated_at = EXCLUDED.updated_at;
         `,
         [
-          r.id,
-          r.application,
-          r.name,
-          r.description,
-          r.authorized_at,
-          r.authorization_status,
-          r.authorization_error,
-          r.created_at,
-          r.updated_at,
-          r.external_id,
-          r.folder_id,
-          r.connection_lost_at,
-          r.connection_lost_reason,
-          r.parent_id
-        ]
+  r.id,
+  r.application,
+  r.name || null,
+  r.description || null,
+  safeTimestamp(r.authorized_at),
+  r.authorization_status || null,
+  r.authorization_error || null,
+  safeTimestamp(r.created_at),
+  safeTimestamp(r.updated_at),
+  r.external_id || null,
+  r.folder_id || null,
+  safeTimestamp(r.connection_lost_at),
+  r.connection_lost_reason || null,
+  r.parent_id || null
+]
       );
     }
 
