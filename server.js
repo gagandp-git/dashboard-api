@@ -115,7 +115,7 @@ app.post("/api/projects", async (req, res) => {
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({ error: "Invalid payload" });
     }
-    for (const record of records) {
+    for (const record of items) {
       const { id, description, folder_id, updated_at, name } = record;
 
       await pool.query(
@@ -238,7 +238,7 @@ app.post("/api/connections", async (req, res) => {
       return res.status(400).json({ error: "Invalid payload" });
     }
 
-      for (const r of records) {
+      for (const r of items) {
       await pool.query(
         `
         INSERT INTO connections (
