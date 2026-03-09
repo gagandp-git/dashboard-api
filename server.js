@@ -110,12 +110,11 @@ pool.query(`
 // Workato will POST array of records here
 app.post("/api/projects", async (req, res) => {
   try {
-    const records = req.body;
+    const { items } = req.body;
 
-    if (!Array.isArray(records)) {
-      return res.status(400).json({ error: "Expected array of records" });
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid payload" });
     }
-
     for (const record of records) {
       const { id, description, folder_id, updated_at, name } = record;
 
@@ -233,9 +232,13 @@ app.post("/api/jobs", async (req, res) => {
 
 app.post("/api/connections", async (req, res) => {
   try {
-    const records = req.body;
+    const { items } = req.body;
 
-    for (const r of records) {
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid payload" });
+    }
+
+      for (const r of records) {
       await pool.query(
         `
         INSERT INTO connections (
