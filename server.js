@@ -237,7 +237,11 @@ app.post("/api/connections", async (req, res) => {
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({ error: "Invalid payload" });
     }
-
+const safeTimestamp = (value) => {
+      if (!value) return null;
+      if (typeof value === "string" && value.trim() === "") return null;
+      return value;
+    };
       for (const r of items) {
       await pool.query(
         `
