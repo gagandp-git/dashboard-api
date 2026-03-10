@@ -370,7 +370,7 @@ app.post("/api/recipes", async (req, res) => {
 
     for (const r of items) {
 
-      // ✅ Skip empty objects
+      // Skip empty objects
       if (!r.id) continue;
 
       await pool.query(
@@ -378,15 +378,18 @@ app.post("/api/recipes", async (req, res) => {
           id,
           name,
           project_id,
+          folder_id,
           running,
           job_succeeded_count,
           job_failed_count,
           last_run_at,
           updated_at
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
+          project_id = EXCLUDED.project_id,
+          folder_id = EXCLUDED.folder_id,
           running = EXCLUDED.running,
           job_succeeded_count = EXCLUDED.job_succeeded_count,
           job_failed_count = EXCLUDED.job_failed_count,
@@ -396,6 +399,7 @@ app.post("/api/recipes", async (req, res) => {
           r.id,
           r.name || null,
           r.project_id || null,
+          r.folder_id || null,   // 👈 NEW FIELD
           r.running === true || r.running === "true",
           r.job_succeeded_count ?? 0,
           r.job_failed_count ?? 0,
