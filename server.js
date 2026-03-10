@@ -71,6 +71,20 @@ pool.query(`
 .catch(err => console.error("Table creation error:", err));
 
 pool.query(`
+  CREATE TABLE IF NOT EXISTS folders (
+    id BIGINT PRIMARY KEY,
+    name TEXT,
+    parent_id BIGINT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    project_id BIGINT,
+    is_project BOOLEAN
+  );
+`)
+.then(() => console.log("Folders table ready"))
+.catch(err => console.error("Folders table creation error:", err));
+
+pool.query(`
   CREATE TABLE IF NOT EXISTS connections (
     id BIGINT PRIMARY KEY,
     application TEXT,
@@ -138,6 +152,47 @@ app.post("/api/projects", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Batch insert failed" });
+  }
+});
+
+app.post("/api/folders", async (req, res) => {
+  try {
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid payload" });
+    }
+
+    for (const folder of items) {
+      await pool.query(
+        `
+        INSERT INTO folders (id, name, parent_id, created_at, updated_at, project_id, is_project)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (id)
+        DO UPDATE SET
+          name = EXCLUDED.name,
+          parent_id = EXCLUDED.parent_id,
+          updated_at = EXCLUDED.updated_at,
+          project_id = EXCLUDED.project_id,
+          is_project = EXCLUDED.is_project;
+        `,
+        [
+          folder.id,
+          folder.name,
+          folder.parent_id || null,
+          folder.created_at || null,
+          folder.updated_at || null,
+          folder.project_id || null,
+          folder.is_project || false
+        ]
+      );
+    }
+
+    res.json({ message: "Folders synced successfully" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to sync folders" });
   }
 });
 
@@ -352,6 +407,17 @@ app.get("/api/projects", async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch projects" });
+  }
+});
+
+app.get("/api/folders", async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM folders ORDER BY updated_at DESC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch folders" });
   }
 });
 
