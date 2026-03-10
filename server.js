@@ -20,6 +20,22 @@ const pool = new Pool({
   },
 });
 
+// Ensure folder_id column exists
+const ensureRecipesTable = async () => {
+  try {
+    await pool.query(`
+      ALTER TABLE recipes
+      ADD COLUMN IF NOT EXISTS folder_id BIGINT
+    `);
+
+    console.log("✅ folder_id column ensured in recipes table");
+  } catch (err) {
+    console.error("Error ensuring column:", err);
+  }
+};
+
+ensureRecipesTable();
+
 // ================= BASIC TEST ROUTES =================
 
 app.get("/", (req, res) => {
