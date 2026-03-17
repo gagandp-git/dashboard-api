@@ -142,9 +142,14 @@ pool.query(`
     recipe_id BIGINT,
     recipe_name TEXT,
     connection_id BIGINT,
-    connection_name TEXT
+    connection_name TEXT,
+    application TEXT
   );
 `)
+.then(async () => {
+  await pool.query(`ALTER TABLE recipe_connections ADD COLUMN IF NOT EXISTS application TEXT`);
+  console.log("Recipe connections table ready");
+})
 .then(() => console.log("Recipe connections table ready"))
 .catch(err => console.error("Recipe connections table creation error:", err));
 // ================= WORKATO SYNC ENDPOINT =================
@@ -439,13 +444,14 @@ app.post("/api/recipe_connections", async (req, res) => {
 
     for (const item of items) {
       await pool.query(
-        `INSERT INTO recipe_connections (recipe_id, recipe_name, connection_id, connection_name)
-         VALUES ($1, $2, $3, $4)`,
+        `INSERT INTO recipe_connections (recipe_id, recipe_name, connection_id, connection_name, application)
+         VALUES ($1, $2, $3, $4, $5)`,
         [
           item.recipe_id,
           item.recipe_name || null,
           item.connection_id || null,
-          item.connection_name || null
+          item.connection_name || null,
+          item.application || null
         ]
       );
     }
