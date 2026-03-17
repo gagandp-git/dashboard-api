@@ -135,6 +135,18 @@ pool.query(`
 `)
 .then(() => console.log("Recipes table ready"))
 .catch(err => console.error("Recipes table creation error:", err));
+
+pool.query(`
+  CREATE TABLE IF NOT EXISTS recipe_connections (
+    id SERIAL PRIMARY KEY,
+    recipe_id BIGINT,
+    recipe_name TEXT,
+    connection_id BIGINT,
+    connection_name TEXT
+  );
+`)
+.then(() => console.log("Recipe connections table ready"))
+.catch(err => console.error("Recipe connections table creation error:", err));
 // ================= WORKATO SYNC ENDPOINT =================
 
 // Workato will POST array of records here
@@ -417,7 +429,54 @@ app.post("/api/recipes", async (req, res) => {
   }
 });
 
-// ================= FETCH DATA FOR DASHBOARD =================
+app.post("/api/recipe_connections", async (req, res) => {
+  try {
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid payload" });
+    }
+
+    for (const item of items) {
+      const connectionNames = Array.isArray(item.connection_name)
+        ? item.connection_name
+        : [item.connection_name];
+
+      const connectionIds = Array.isArray(item.connection_id)
+        ? item.connection_id
+        : [item.connection_id];
+
+      for (let i = 0; i < connectionIds.length; i++) {
+        await pool.query(
+          `INSERT INTO recipe_connections (recipe_id, recipe_name, connection_id, connection_name)
+           VALUES ($1, $2, $3, $4)`,
+          [
+            item.recipe_id,
+            item.recipe_name || null,
+            connectionIds[i] || null,
+            connectionNames[i] || null
+          ]
+        );
+      }
+    }
+
+    res.json({ message: "Recipe connections synced successfully" });
+
+  } catch (error) {
+    console.error("Recipe connections error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/recipe_connections", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM recipe_connections ORDER BY recipe_id");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch recipe connections" });
+  }
+});
 
 app.get("/api/projects", async (req, res) => {
   try {
