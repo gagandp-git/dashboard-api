@@ -438,26 +438,16 @@ app.post("/api/recipe_connections", async (req, res) => {
     }
 
     for (const item of items) {
-      const connectionNames = Array.isArray(item.connection_name)
-        ? item.connection_name
-        : [item.connection_name];
-
-      const connectionIds = Array.isArray(item.connection_id)
-        ? item.connection_id
-        : [item.connection_id];
-
-      for (let i = 0; i < connectionIds.length; i++) {
-        await pool.query(
-          `INSERT INTO recipe_connections (recipe_id, recipe_name, connection_id, connection_name)
-           VALUES ($1, $2, $3, $4)`,
-          [
-            item.recipe_id,
-            item.recipe_name || null,
-            connectionIds[i] || null,
-            connectionNames[i] || null
-          ]
-        );
-      }
+      await pool.query(
+        `INSERT INTO recipe_connections (recipe_id, recipe_name, connection_id, connection_name)
+         VALUES ($1, $2, $3, $4)`,
+        [
+          item.recipe_id,
+          item.recipe_name || null,
+          item.connection_id || null,
+          item.connection_name || null
+        ]
+      );
     }
 
     res.json({ message: "Recipe connections synced successfully" });
