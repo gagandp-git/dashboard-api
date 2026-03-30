@@ -137,7 +137,29 @@ pool.query(`
 .catch(err => console.error("Recipes table creation error:", err));
 
 pool.query(`
-  CREATE TABLE IF NOT EXISTS recipe_connections (
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGINT PRIMARY KEY,
+    timestamp TIMESTAMP,
+    event_type TEXT,
+    workspace_id BIGINT,
+    workspace_name TEXT,
+    workspace_environment TEXT,
+    user_id BIGINT,
+    user_name TEXT,
+    user_email TEXT,
+    resource_id BIGINT,
+    resource_name TEXT,
+    resource_type TEXT,
+    resource_path TEXT,
+    resource_folder_id BIGINT,
+    details JSONB
+  );
+`)
+.then(() => console.log("Audit logs table ready"))
+.catch(err => console.error("Audit logs table creation error:", err));
+
+pool.query(`
+  CREATE TABLE IF NOT EXISTS recipe_connections (`
     id SERIAL PRIMARY KEY,
     recipe_id BIGINT,
     recipe_name TEXT,
@@ -431,6 +453,63 @@ app.post("/api/recipes", async (req, res) => {
   } catch (error) {
     console.error("FULL ERROR:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/audit_logs", async (req, res) => {
+  try {
+    const { data } = req.body;
+    if (!data || !Array.isArray(data)) {
+      return res.status(400).json({ error: "Invalid payload, expected { data: [...] }" });
+    }
+    for (const item of data) {
+      await pool.query(
+        `INSERT INTO audit_logs (
+          id, timestamp, event_type,
+          workspace_id, workspace_name, workspace_environment,
+          user_id, user_name, user_email,
+          resource_id, resource_name, resource_type, resource_path, resource_folder_id,
+          details
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        ON CONFLICT (id) DO UPDATE SET
+          event_type = EXCLUDED.event_type,
+          timestamp = EXCLUDED.timestamp,
+          user_name = EXCLUDED.user_name,
+          resource_name = EXCLUDED.resource_name,
+          details = EXCLUDED.details`,
+        [
+          item.id,
+          item.timestamp || null,
+          item.event_type || null,
+          item.workspace?.id || null,
+          item.workspace?.name || null,
+          item.workspace?.environment || null,
+          item.user?.id || null,
+          item.user?.name || null,
+          item.user?.email || null,
+          item.resource?.id || null,
+          item.resource?.name || null,
+          item.resource?.type || null,
+          item.resource?.path || null,
+          item.resource?.folder_id || null,
+          JSON.stringify(item.details || {})
+        ]
+      );
+    }
+    res.json({ message: "Audit logs synced successfully" });
+  } catch (error) {
+    console.error("Audit logs error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/audit_logs", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM audit_logs ORDER BY timestamp DESC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch audit logs" });
   }
 });
 
