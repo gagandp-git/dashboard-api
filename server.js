@@ -159,7 +159,7 @@ pool.query(`
 .catch(err => console.error("Audit logs table creation error:", err));
 
 pool.query(`
-  CREATE TABLE IF NOT EXISTS recipe_connections (`
+  CREATE TABLE IF NOT EXISTS recipe_connections (
     id SERIAL PRIMARY KEY,
     recipe_id BIGINT,
     recipe_name TEXT,
@@ -172,7 +172,6 @@ pool.query(`
   await pool.query(`ALTER TABLE recipe_connections ADD COLUMN IF NOT EXISTS application TEXT`);
   console.log("Recipe connections table ready");
 })
-.then(() => console.log("Recipe connections table ready"))
 .catch(err => console.error("Recipe connections table creation error:", err));
 // ================= WORKATO SYNC ENDPOINT =================
 
