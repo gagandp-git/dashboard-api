@@ -457,11 +457,11 @@ app.post("/api/recipes", async (req, res) => {
 
 app.post("/api/audit_logs", async (req, res) => {
   try {
-    const { data } = req.body;
-    if (!data || !Array.isArray(data)) {
-      return res.status(400).json({ error: "Invalid payload, expected { data: [...] }" });
+    const { items } = req.body;
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid payload, expected { items: [...] }" });
     }
-    for (const item of data) {
+    for (const item of items) {
       await pool.query(
         `INSERT INTO audit_logs (
           id, timestamp, event_type,
