@@ -552,6 +552,57 @@ app.get("/api/recipe_connections", async (req, res) => {
   }
 });
 
+app.get("/api/job-stats", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        DATE(completed_at) as date,
+        COUNT(*) FILTER (WHERE status = 'succeeded') as succeeded,
+        COUNT(*) FILTER (WHERE status = 'failed') as failed
+      FROM jobs
+      WHERE completed_at IS NOT NULL
+      GROUP BY DATE(completed_at)
+      ORDER BY date DESC
+      LIMIT 7;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: "Job stats failed" });
+  }
+});
+
+app.get("/api/dashboard", async (req, res) => {
+  try {
+    const jobLimit = parseInt(req.query.jobLimit) || 100;
+    const jobOffset = parseInt(req.query.jobOffset) || 0;
+    const auditLimit = parseInt(req.query.auditLimit) || 100;
+    const auditOffset = parseInt(req.query.auditOffset) || 0;
+
+    const [projects, connections, jobs, recipes, folders, recipeConnections, auditLogs] = await Promise.all([
+      pool.query("SELECT * FROM projects"),
+      pool.query("SELECT * FROM connections"),
+      pool.query(`SELECT id, status, completed_at, recipe_id FROM jobs ORDER BY completed_at DESC LIMIT $1 OFFSET $2`, [jobLimit, jobOffset]),
+      pool.query("SELECT * FROM recipes"),
+      pool.query("SELECT * FROM folders"),
+      pool.query("SELECT * FROM recipe_connections"),
+      pool.query(`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT $1 OFFSET $2`, [auditLimit, auditOffset])
+    ]);
+
+    res.json({
+      projects: projects.rows,
+      connections: connections.rows,
+      jobs: jobs.rows,
+      recipes: recipes.rows,
+      folders: folders.rows,
+      recipeConnections: recipeConnections.rows,
+      auditLogs: auditLogs.rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Dashboard fetch failed" });
+  }
+});
+
 app.get("/api/projects", async (req, res) => {
   try {
     const result = await pool.query(
