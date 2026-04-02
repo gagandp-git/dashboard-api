@@ -554,17 +554,33 @@ app.get("/api/recipe_connections", async (req, res) => {
 
 app.get("/api/job-stats", async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT
-        DATE(completed_at) as date,
-        COUNT(*) FILTER (WHERE status = 'succeeded') as succeeded,
-        COUNT(*) FILTER (WHERE status = 'failed') as failed
-      FROM jobs
-      WHERE completed_at IS NOT NULL
-      GROUP BY DATE(completed_at)
-      ORDER BY date DESC
-      LIMIT 7;
-    `);
+    const recipeId = req.query.recipe_id;
+    let query, params;
+    if (recipeId) {
+      query = `
+        SELECT
+          DATE(completed_at) as date,
+          COUNT(*) FILTER (WHERE status = 'succeeded') as succeeded,
+          COUNT(*) FILTER (WHERE status = 'failed') as failed
+        FROM jobs
+        WHERE completed_at IS NOT NULL AND recipe_id = $1
+        GROUP BY DATE(completed_at)
+        ORDER BY date ASC;`;
+      params = [recipeId];
+    } else {
+      query = `
+        SELECT
+          DATE(completed_at) as date,
+          COUNT(*) FILTER (WHERE status = 'succeeded') as succeeded,
+          COUNT(*) FILTER (WHERE status = 'failed') as failed
+        FROM jobs
+        WHERE completed_at IS NOT NULL
+        GROUP BY DATE(completed_at)
+        ORDER BY date DESC
+        LIMIT 7;`;
+      params = [];
+    }
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: "Job stats failed" });
