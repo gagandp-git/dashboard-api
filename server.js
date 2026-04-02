@@ -578,14 +578,19 @@ app.get("/api/dashboard", async (req, res) => {
     const auditLimit = parseInt(req.query.auditLimit) || 100;
     const auditOffset = parseInt(req.query.auditOffset) || 0;
 
-    const [projects, connections, jobs, recipes, folders, recipeConnections, auditLogs] = await Promise.all([
-      pool.query("SELECT * FROM projects"),
-      pool.query("SELECT * FROM connections"),
+    const [projects, connections, jobs, recipes, folders, recipeConnections, auditLogs, jobTotals] = await Promise.all([
+      pool.query(`SELECT id, name, updated_at FROM projects`),
+      pool.query(`SELECT id, name, application, authorization_status FROM connections`),
       pool.query(`SELECT id, status, completed_at, recipe_id FROM jobs ORDER BY completed_at DESC LIMIT $1 OFFSET $2`, [jobLimit, jobOffset]),
-      pool.query("SELECT * FROM recipes"),
-      pool.query("SELECT * FROM folders"),
-      pool.query("SELECT * FROM recipe_connections"),
-      pool.query(`SELECT * FROM audit_logs ORDER BY timestamp DESC LIMIT $1 OFFSET $2`, [auditLimit, auditOffset])
+      pool.query(`SELECT id, name, project_id, folder_id, running, job_succeeded_count, job_failed_count, updated_at FROM recipes`),
+      pool.query(`SELECT id, name, parent_id, project_id, is_project FROM folders`),
+      pool.query(`SELECT recipe_id, recipe_name, connection_id, connection_name, application FROM recipe_connections`),
+      pool.query(`SELECT id, timestamp, event_type, user_name, workspace_environment, resource_name, resource_type, resource_path, details FROM audit_logs ORDER BY timestamp DESC LIMIT $1 OFFSET $2`, [auditLimit, auditOffset]),
+      pool.query(`SELECT
+        COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE status = 'succeeded') AS succeeded,
+        COUNT(*) FILTER (WHERE status = 'failed') AS failed
+        FROM jobs`)
     ]);
 
     res.json({
@@ -595,7 +600,8 @@ app.get("/api/dashboard", async (req, res) => {
       recipes: recipes.rows,
       folders: folders.rows,
       recipeConnections: recipeConnections.rows,
-      auditLogs: auditLogs.rows
+      auditLogs: auditLogs.rows,
+      jobTotals: jobTotals.rows[0]
     });
   } catch (err) {
     console.error(err);
