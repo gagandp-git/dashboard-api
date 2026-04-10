@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
+const authenticate = require("./auth")
 const safeTimestamp = (value) => {
   if (!value) return null;
   if (typeof value === "string" && value.trim() === "") return null;
@@ -587,7 +588,8 @@ app.get("/api/job-stats", async (req, res) => {
   }
 });
 
-app.get("/api/dashboard", async (req, res) => {
+app.get("/api/dashboard", authenticate, async (req, res) => {
+  console.log("User:", req.user.email)
   try {
     const jobLimit = parseInt(req.query.jobLimit) || 100;
     const jobOffset = parseInt(req.query.jobOffset) || 0;
